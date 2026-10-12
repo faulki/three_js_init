@@ -11,26 +11,35 @@ import {
     Scene,
     WebGLRenderer,
     PlaneGeometry,
+    Fog,
+    CanvasTexture,
+    NearestFilter,
+    RepeatWrapping,
+    Raycaster,
 } from 'three';
 import { OrbitControls, TransformControls } from 'three/examples/jsm/Addons.js';
 import { Pane } from 'tweakpane';
 import Lego from './Lego';
 
+const GRID_SIZE = 101;
+
 export default class WebGLApplication {
     constructor() {
-        console.log('Hello WebGL Application');
-
         this.renderWidth = window.innerWidth;
         this.renderHeight = window.innerHeight;
 
+        this.altitude = 0;
+
         this.renderer = this.createRenderer();
         this.scene = this.createScene();
+        this.fog = this.createFog();
         this.camera = this.createCamera();
         this.controls = this.createControls();
         this.mesh = this.createMesh();
         this.lights = this.createLights();
-        this.floor = this.createFloor();
         this.lego = this.createLego();
+        this.floorTexture = this.createFloorTexture();
+        this.floor = this.createFloor();
 
         this.debugger = this.createDebugger();
 
@@ -63,7 +72,7 @@ export default class WebGLApplication {
     }
 
     createCamera() {
-        const camera = new PerspectiveCamera(75, this.renderWidth / this.renderHeight, 0.1, 1000);
+        const camera = new PerspectiveCamera(45, this.renderWidth / this.renderHeight, 0.1, 500);
 
         camera.position.z = 5;
 
@@ -71,9 +80,11 @@ export default class WebGLApplication {
     }
 
     createFog() {
-        const fog = new Fog();
+        const fog = new Fog(0xffffff, 10, 50);
 
-        this.scene.fog
+        this.scene.fog = fog;
+
+        return fog;
     }
 
     resetCameraPosition() {
@@ -101,7 +112,7 @@ export default class WebGLApplication {
         const material = new MeshPhongMaterial({ color: 'white' });
         const mesh = new Mesh(geometry, material);
 
-        this.scene.add(mesh);
+        // this.scene.add(mesh);
 
         return mesh;
     }
@@ -113,15 +124,16 @@ export default class WebGLApplication {
 
         this.scene.add(lights.ambient);
 
-        lights.directional = new DirectionalLight(0xffffff);
-        lights.directional.position.x = 10;
-        lights.directional.position.y = 10;
+        lights.directional = new DirectionalLight(0xffffff, 1.5);
+        lights.directional.position.x = 5;
+        lights.directional.position.y = 5;
+        lights.directional.position.z = 5;
         lights.directional.target.position.set(0, 0, 0);
 
         lights.directional.helper = new DirectionalLightHelper(lights.directional, 1, 0xff0000);
         lights.directional.controls = new TransformControls(this.camera, this.renderer.domElement);
 
-        lights.directional.controls.attach(lights.directional);
+        // lights.directional.controls.attach(lights.directional);
         // this.scene.add(lights.directional.controls.getHelper());
 
         this.scene.add(lights.directional);
@@ -130,27 +142,89 @@ export default class WebGLApplication {
         return lights;
     }
 
+    createFloorTexture() {
+        const canvas = document.createElement('canvas');
+        const context = canvas.getContext('2d');
+
+        canvas.width = 2;
+        canvas.height = 2;
+
+        context.fillStyle = '#F1F1F1';
+        context.fillRect(0, 0, 1, 1);
+        context.fillRect(1, 1, 1, 1);
+
+        context.fillStyle = '#BFBFBF';
+        context.fillRect(1, 0, 1, 1);
+        context.fillRect(0, 1, 1, 1);
+
+        const canvasTexture = new CanvasTexture(canvas);
+        canvasTexture.minFilter = NearestFilter;
+        canvasTexture.magFilter = NearestFilter;
+        canvasTexture.wrapS = RepeatWrapping;
+        canvasTexture.wrapT = RepeatWrapping;
+        canvasTexture.repeat.set(GRID_SIZE / 2, GRID_SIZE / 2);
+
+        return canvasTexture;
+    }
+
+    getFloorPosition() {
+        window.addEventListener('click',e =>{
+        mousePosition.x = (e.clientX / window.innerWidth) * 2 - 1;
+        mousePosition.y = -(e.clientY / window.innerHeight) * 2 + 1;
+      // console.log("X = "+mousePosition.x);
+      // console.log("Y = "+mousePosition.y);
+   
+      raycaster.setFromCamera(mousePosition, camera);
+ 
+      
+      const intersects = raycaster.intersectObject(plane);
+        // if(intersects){
+        //        console.log( intersects[0].point);
+        // }
+
+   
+      if (intersects.length > 0) {
+        cube.position.copy(intersects[0].point)
+        cube.position.y = 0.125
+      }
+
+
+     
+        })
+    }
+
     createFloor() {
         const geometry = new PlaneGeometry(1, 1, 1);
-        const material = new MeshPhongMaterial();
+        const material = new MeshBasicMaterial({ map: this.floorTexture });
         const mesh = new Mesh(geometry, material);
 
-        mesh.scale.set(100, 100, 100);
+        mesh.scale.set(GRID_SIZE, GRID_SIZE, GRID_SIZE);
         mesh.rotation.x = -Math.PI / 2;
         mesh.position.y = -0.5;
 
         this.scene.add(mesh);
 
+        console.log(mesh)
+
         return mesh;
     }
 
     createLego() {
+        const colors = [0xff0000, 0x0000ff, 0x00ffff];
+        const randomColorIndex = Math.floor(Math.random() * colors.length);
+        const randomSize = Math.floor(Math.random() * 2) + 1;
+        const orientation = Math.floor(Math.random() * 3);
+
         const lego = new Lego({
-            color: 0xff0000,
-            size: 1,
+            color: colors[randomColorIndex],
+            size: randomSize,
+            orientation: orientation,
+            altitude: this.altitude,
         });
 
         this.scene.add(lego);
+
+        this.altitude++;
 
         return lego;
     }
@@ -173,7 +247,11 @@ export default class WebGLApplication {
     setupEventListeners() {
         window.addEventListener('resize', this.resizeHandler.bind(this));
         this.controls.addEventListener('change', this.controlsChangeHandler.bind(this));
+        window.addEventListener('keydown', this.keydownHandler.bind(this));
         this.lights.directional.controls.addEventListener('change', this.lightControlsChangeHandler.bind(this));
+        this.lights.directional.controls.addEventListener('mouseDown', this.lightControlsMouseDownHandler.bind(this));
+        this.lights.directional.controls.addEventListener('mouseUp', this.lightControlsMouseUpHandler.bind(this));
+        window.addEventListener('pointerDown')
 
         this.tickHandler();
     }
@@ -197,9 +275,21 @@ export default class WebGLApplication {
         sessionStorage.setItem('cameraTarget', JSON.stringify(this.controls.target));
     }
 
+    keydownHandler() {
+        this.createLego();
+    }
+
     lightControlsChangeHandler() {
         this.lights.directional.target.position.set(0, 0, 0);
         this.lights.directional.helper.update();
+    }
+
+    lightControlsMouseDownHandler() {
+        this.controls.enabled = false;
+    }
+
+    lightControlsMouseUpHandler() {
+        this.controls.enabled = true;
     }
 
     /**
@@ -223,6 +313,11 @@ export default class WebGLApplication {
             sessionStorage.removeItem('cameraTarget');
             this.resetCameraPosition();
         });
+
+        const fogFolder = pane.addFolder({ title: 'Fog' });
+        fogFolder.addBinding(this.fog, 'near', { min: 0, max: 100 });
+        fogFolder.addBinding(this.fog, 'far', { min: 0, max: 100 });
+        fogFolder.addBinding(this.fog, 'color');
 
         return pane;
     }
