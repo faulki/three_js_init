@@ -1,4 +1,12 @@
-import { BoxGeometry, CylinderGeometry, Mesh, MeshNormalMaterial, MeshPhongMaterial, Object3D } from 'three';
+import {
+    BoxGeometry,
+    CylinderGeometry,
+    Mesh,
+    MeshNormalMaterial,
+    MeshPhongMaterial,
+    MeshPhysicalMaterial,
+    Object3D,
+} from 'three';
 
 const ROTATION_STEP = Math.PI / 2;
 
@@ -10,17 +18,31 @@ export default class Lego extends Object3D {
         this.color = options.color;
         this.altitude = options.altitude;
         this.orientation = options.orientation;
+        this.material = options.material;
 
+        // this.material = this.createMaterial();
         this.box = this.createBox();
         this.cylinders = this.createCylinders();
 
         this.updateTransform();
     }
 
+    // createMaterial() {
+    //     const material = new MeshPhysicalMaterial({
+    //         color: this.color,
+    //         roughness: 0.5,
+    //         clearcoat: 1.0,
+    //         clearcoatRoughness: 0.1,
+    //         // map: diffuse,
+    //         // normalMap: normalMap,
+    //     });
+
+    //     return material;
+    // }
+
     createBox() {
         const geometry = new BoxGeometry(1, 1, 1);
-        const material = new MeshPhongMaterial({ color: this.color });
-        const mesh = new Mesh(geometry, material);
+        const mesh = new Mesh(geometry, this.material);
 
         mesh.scale.x = this.size;
 
@@ -44,7 +66,7 @@ export default class Lego extends Object3D {
 
     createCylinder() {
         const geometry = new CylinderGeometry(1, 1, 1, 32, 1);
-        const material = new MeshPhongMaterial({ color: this.color });
+        const material = this.material;
         const mesh = new Mesh(geometry, material);
 
         mesh.scale.set(0.2, 0.3, 0.2);
