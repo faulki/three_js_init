@@ -19,10 +19,13 @@ import {
     Vector3,
     Vector2,
     MeshPhysicalMaterial,
+    FloatType,
+    EquirectangularReflectionMapping,
 } from 'three';
-import { OrbitControls, TransformControls } from 'three/examples/jsm/Addons.js';
+import { HDRLoader, OrbitControls, TransformControls } from 'three/examples/jsm/Addons.js';
 import { Pane } from 'tweakpane';
 import Lego from './Lego';
+import { PMREMGenerator } from 'three';
 
 const GRID_SIZE = 101;
 
@@ -40,6 +43,7 @@ export default class WebGLApplication {
         this.controls = this.createControls();
         this.mesh = this.createMesh();
         this.lights = this.createLights();
+        this.envmap = this.createEnvmap();
         this.legoMaterial = this.createLegoMaterial();
         this.lego = this.createLego();
         this.floorTexture = this.createFloorTexture();
@@ -141,11 +145,11 @@ export default class WebGLApplication {
         lights.directional.helper = new DirectionalLightHelper(lights.directional, 1, 0xff0000);
         lights.directional.controls = new TransformControls(this.camera, this.renderer.domElement);
 
-        // lights.directional.controls.attach(lights.directional);
-        // this.scene.add(lights.directional.controls.getHelper());
+        lights.directional.controls.attach(lights.directional);
+        this.scene.add(lights.directional.controls.getHelper());
 
         this.scene.add(lights.directional);
-        // this.scene.add(lights.directional.helper);
+        this.scene.add(lights.directional.helper);
 
         return lights;
     }
@@ -236,6 +240,18 @@ export default class WebGLApplication {
         }
 
         return lego;
+    }
+
+    async createEnvmap() {
+        const loader = new HDRLoader();
+        loader.setDataType(FloatType);
+
+        loader.load('/01.hdr', (texture) => {
+            texture.mapping = EquirectangularReflectionMapping;
+            const generator = new PMREMGenerator(this.renderer);
+            this.scene.environment = generator.fromEquirectangular(texture, null).texture;
+            generator.dispose();
+        });
     }
 
     raycast() {
