@@ -1,1 +1,3 @@
-console.log('Hello World');
+import WebGLApplication from './src/webgl';
+
+const webgl = new WebGLApplication();
