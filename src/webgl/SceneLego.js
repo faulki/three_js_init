@@ -21,7 +21,6 @@ import { PMREMGenerator } from 'three';
 import CameraManager from './CameraManager';
 import LightsManager from './LightsManager';
 import LegoPropsManager from './LegoPropsManager';
-import { animate, utils, createDraggable, spring } from 'animejs';
 
 const GRID_SIZE = 51;
 
@@ -189,7 +188,7 @@ export default class SceneLego extends Scene {
             orientation: orientation,
             altitude: altitude,
             material: this.legoMaterial.clone(),
-        });
+        }); 
 
         this.add(lego);
 

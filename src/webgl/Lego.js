@@ -1,5 +1,7 @@
 import { BoxGeometry, CylinderGeometry, Mesh, Object3D } from 'three';
 import { GLTFLoader } from 'three/examples/jsm/Addons.js';
+import { animate, utils, createDraggable, spring } from 'animejs';
+import 'animejs/adapters/three';    
 
 const ROTATION_STEP = Math.PI / 2;
 
@@ -20,6 +22,9 @@ export default class Lego extends Object3D {
         this.lego = this.createLegoWithModel();
 
         this.updateTransform();
+    }
+
+    animateLego() {
     }
 
     createLegoWithPrimitives() {
@@ -57,6 +62,15 @@ export default class Lego extends Object3D {
 
         obj.traverse((child) => {
             if (child.isMesh) child.material = this.material;
+        });
+
+        animate(obj, {
+            scale: [
+                { to: 0.75, ease: 'inOut(3)', duration: 200 },
+                { to: 0.5, ease: spring({ bounce: .7 }) }
+            ],
+            loop: true,
+            loopDelay: 250,
         });
 
         this.add(obj);
