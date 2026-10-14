@@ -1,4 +1,5 @@
-import { WebGLRenderer } from 'three';
+import { WebGLRenderer, ACESFilmicToneMapping, Vector2 } from 'three';
+import { EffectComposer, RenderPass, UnrealBloomPass, OutputPass } from 'three/examples/jsm/Addons.js';
 import { Pane } from 'tweakpane';
 import SceneLego from './SceneLego';
 
@@ -12,6 +13,8 @@ export default class WebGLApplication {
         this.renderer = this.createRenderer();
         this.debugger = this.createDebugger();
         this.sceneLego = this.createSceneLego();
+        this.sceneLego = this.createSceneLego();
+        this.composer = this.createComposer();
 
         this.resize();  
 
@@ -30,10 +33,35 @@ export default class WebGLApplication {
             canvas: document.querySelector('canvas'),
         });
 
+        renderer.toneMapping = ACESFilmicToneMapping;
         renderer.setClearColor(0x000000);
 
         return renderer;
     }
+
+    createComposer() {
+    const composer = new EffectComposer(this.renderer);
+
+    // 1. rendu normal de la scène
+    composer.addPass(new RenderPass(this.sceneLego, this.sceneLego.camera));
+
+    // 2. bloom : (résolution, force, rayon du halo, seuil de luminosité)
+    this.bloomPass = new UnrealBloomPass(new Vector2(this.renderWidth, this.renderHeight), 0.6, 0.4, 0.8);
+    composer.addPass(this.bloomPass);
+
+    // 3. tone mapping + conversion des couleurs pour l'écran
+    composer.addPass(new OutputPass());
+
+    if (this.debugger) {
+        const bloomFolder = this.debugger.addFolder({ title: 'Bloom' });
+        bloomFolder.addBinding(this.bloomPass, 'strength', { min: 0, max: 3 });
+        bloomFolder.addBinding(this.bloomPass, 'radius', { min: 0, max: 1 });
+        bloomFolder.addBinding(this.bloomPass, 'threshold', { min: 0, max: 1 });
+        bloomFolder.addBinding(this.bloomPass, 'enabled', { label: 'Bloom on' });
+    }
+
+    return composer;
+}
 
     createSceneLego() {
         const scene = new SceneLego({
@@ -48,6 +76,8 @@ export default class WebGLApplication {
         this.renderer.setSize(this.renderWidth, this.renderHeight);
 
         this.sceneLego.resize(this.renderWidth, this.renderHeight);
+
+        this.composer.setSize(this.renderWidth, this.renderHeight);
     }
 
     update() {
@@ -62,11 +92,13 @@ export default class WebGLApplication {
         this.sceneLego.lego.rotation.y = t
 
 
-        this.sceneLego.camera.lookAt(this.sceneLego.lego.position);
+        this.sceneLego.cameraManager.controls.target.copy(this.sceneLego.lego.position);
+        this.sceneLego.cameraManager.controls.update();
+        this.sceneLego.lightsManager.update(this.sceneLego.lego.position);
     }
 
     render() {
-        this.renderer.render(this.sceneLego, this.sceneLego.camera);
+        this.composer.render();
     }
 
     /**

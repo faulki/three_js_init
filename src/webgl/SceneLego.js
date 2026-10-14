@@ -45,7 +45,7 @@ export default class SceneLego extends Scene {
         this.fog = this.createFog();
         this.debugFolder = this.createDebugFolder();
         this.cameraManager = this.createCameraManager();
-        this.envmap = this.createEnvmap();
+        // this.envmap = this.createEnvmap();
         this.legoMaterial = this.createLegoMaterial();
         this.lego = this.createLego();
         this.floorTexture = this.createFloorTexture();
@@ -85,7 +85,7 @@ export default class SceneLego extends Scene {
     }
 
     createFog() {
-        const fog = new Fog(0xffffff, 10, 50);
+        const fog = new Fog(0x000000, 10, 50);
 
         this.fog = fog;
 
@@ -114,7 +114,7 @@ export default class SceneLego extends Scene {
         const material = new MeshPhysicalMaterial({
             clearcoat: 1.0,
             clearcoatRoughness: 0.1,
-            metalness: 0.9,
+            metalness: 1,
             roughness: 0.5,
             color: 0x0000ff,
             normalMap: normalMap,
@@ -208,6 +208,7 @@ createLego() {
             texture.mapping = EquirectangularReflectionMapping;
             const generator = new PMREMGenerator(this.renderer);
             this.environment = generator.fromEquirectangular(texture, null).texture;
+            this.environmentIntensity = 0.3;
             generator.dispose();
         });
     }
@@ -290,7 +291,7 @@ createLego() {
     // }
 
     update(delta) {
-        this.cameraManager.update(delta);
+        // this.cameraManager.update(delta);
 
         // this.raycast();
     }
@@ -343,31 +344,31 @@ createLego() {
     //     }
     // }
 
-    pointerdownHandler(e) {
-        this.isPointerDown = true;
+    // pointerdownHandler(e) {
+    //     this.isPointerDown = true;
 
-        this.pointerStartPosition = {
-            x: e.clientX,
-            y: e.clientY,
-        };
-    }
+    //     this.pointerStartPosition = {
+    //         x: e.clientX,
+    //         y: e.clientY,
+    //     };
+    // }
 
-    pointerupHandler(e) {
-        this.isPointerDown = false;
+    // pointerupHandler(e) {
+    //     this.isPointerDown = false;
 
-        const x = e.clientX;
-        const y = e.clientY;
+    //     const x = e.clientX;
+    //     const y = e.clientY;
 
-        const distX = x - this.pointerStartPosition.x;
-        const distY = y - this.pointerStartPosition.y;
-        const dist = Math.sqrt(distX * distX + distY * distY);
+    //     const distX = x - this.pointerStartPosition.x;
+    //     const distY = y - this.pointerStartPosition.y;
+    //     const dist = Math.sqrt(distX * distX + distY * distY);
 
-        const threshold = 5;
+    //     const threshold = 5;
 
-        if (dist > threshold) return;
+    //     if (dist > threshold) return;
 
-        this.createLego(2);
-    }
+    //     this.createLego(2);
+    // }
 
     // mousemoveHandler(e) {
     //     this.mousePosition.x = (e.clientX / this.renderWidth) * 2 - 1;
