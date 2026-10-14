@@ -13,7 +13,6 @@ export default class WebGLApplication {
         this.renderer = this.createRenderer();
         this.debugger = this.createDebugger();
         this.sceneLego = this.createSceneLego();
-        this.sceneLego = this.createSceneLego();
         this.composer = this.createComposer();
 
         this.resize();  
