@@ -53,6 +53,7 @@ export default class Lego extends Object3D {
         const loader = new GLTFLoader();
         const gltf = await loader.loadAsync('legos.glb');
         const obj = gltf.scene.getObjectByName(`Lego_${this.size}`);
+        let rotations = 1;
 
         console.log(`Lego_${this.size}`);
 
@@ -64,13 +65,11 @@ export default class Lego extends Object3D {
             if (child.isMesh) child.material = this.material;
         });
 
-        animate(obj, {
-            scale: [
-                { to: 0.75, ease: 'inOut(3)', duration: 200 },
-                { to: 0.5, ease: spring({ bounce: .7 }) }
-            ],
+         animate(obj, {
+            rotate: '360deg',
+            ease: 'out(4)',
+            duration: 1500,
             loop: true,
-            loopDelay: 250,
         });
 
         this.add(obj);

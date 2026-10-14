@@ -22,7 +22,7 @@ import CameraManager from './CameraManager';
 import LightsManager from './LightsManager';
 import LegoPropsManager from './LegoPropsManager';
 
-const GRID_SIZE = 51;
+const GRID_SIZE = 51;   
 
 export default class SceneLego extends Scene {
     constructor(options = {}) {

@@ -57,6 +57,8 @@ export default class CameraManager {
     controlsChangeHandler() {
         sessionStorage.setItem('cameraPosition', JSON.stringify(this.camera.position));
         sessionStorage.setItem('cameraTarget', JSON.stringify(this.controls.target));
+
+        console.log(this.camera.position)
     }
 
     /**
