@@ -50,7 +50,7 @@ export default class SceneLego extends Scene {
         this.legoMaterial = this.createLegoMaterial();
         this.lego = this.createLego();
         this.floorTexture = this.createFloorTexture();
-        this.floor = this.createFloor();
+        // this.floor = this.createFloor();
         this.mouseGhost = this.createMouseGhost();
         this.lightsManager = this.createLightsManager();
 
@@ -79,6 +79,10 @@ export default class SceneLego extends Scene {
         });
 
         return cameraManager;
+    }
+
+    animate() {
+
     }
 
     createFog() {
@@ -289,6 +293,12 @@ export default class SceneLego extends Scene {
         for (let i = 1; i < size; i++) {
             this.gridAltitudeData[this.getFlatIndex(x + i * offset.x, y + i * offset.y)] = altitude + 1;
         }
+    }
+
+    update(delta) {
+        this.cameraManager.update(delta);
+
+        this.raycast();
     }
 
     getFlatIndex(x, y) {

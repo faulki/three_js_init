@@ -24,9 +24,6 @@ export default class Lego extends Object3D {
         this.updateTransform();
     }
 
-    animateLego() {
-    }
-
     createLegoWithPrimitives() {
         const container = new Object3D();
 
@@ -63,13 +60,6 @@ export default class Lego extends Object3D {
 
         obj.traverse((child) => {
             if (child.isMesh) child.material = this.material;
-        });
-
-         animate(obj, {
-            rotate: '360deg',
-            ease: 'out(4)',
-            duration: 1500,
-            loop: true,
         });
 
         this.add(obj);

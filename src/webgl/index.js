@@ -13,7 +13,7 @@ export default class WebGLApplication {
         this.debugger = this.createDebugger();
         this.sceneLego = this.createSceneLego();
 
-        this.resize();
+        this.resize();  
 
         this.setupEventListeners();
     }
@@ -50,7 +50,20 @@ export default class WebGLApplication {
         this.sceneLego.resize(this.renderWidth, this.renderHeight);
     }
 
-    update() {}
+    update() {
+        const r = Date.now() * 0.0003;
+        const t = Date.now() * 0.0005;
+
+        this.sceneLego.lego.position.x = 15 * Math.cos(r);
+        this.sceneLego.lego.position.y = 15 * Math.sin(r);
+        this.sceneLego.lego.position.z = 15 * Math.sin(r);
+
+        this.sceneLego.lego.rotation.x = t
+        this.sceneLego.lego.rotation.y = t
+
+
+        this.sceneLego.camera.lookAt(this.sceneLego.lego.position);
+    }
 
     render() {
         this.renderer.render(this.sceneLego, this.sceneLego.camera);

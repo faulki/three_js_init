@@ -1,10 +1,14 @@
-import { PerspectiveCamera } from 'three';
+import { PerspectiveCamera, Vector3 } from 'three';
 import { OrbitControls } from 'three/examples/jsm/Addons.js';
 
 export default class CameraManager {
     constructor(options = {}) {
         this.renderer = options.renderer;
         this.debugger = options.debugger;
+
+        this.moveDirection = new Vector3(1, 0, 0);
+        this.moveSpeed = 1;
+        this.moveVector = new Vector3();
 
         this.camera = this.createCamera();
         this.controls = this.createControls();
@@ -42,6 +46,18 @@ export default class CameraManager {
         return controls;
     }
 
+    // update(delta) {
+    //     this.moveVector
+    //         .copy(this.moveDirection)
+    //         .normalize()
+    //         .multiplyScalar(this.moveSpeed * delta);
+
+    //         this.camera.position.add(this.moveVector);
+    //         this.controls.target.set(0, 0, 0);
+
+    //         this.controls.update();
+    // }
+
     resize(width, height) {
         this.renderWidth = width;
         this.renderHeight = height;
@@ -57,8 +73,6 @@ export default class CameraManager {
     controlsChangeHandler() {
         sessionStorage.setItem('cameraPosition', JSON.stringify(this.camera.position));
         sessionStorage.setItem('cameraTarget', JSON.stringify(this.controls.target));
-
-        console.log(this.camera.position)
     }
 
     /**
