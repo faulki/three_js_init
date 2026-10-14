@@ -30,7 +30,7 @@ export default class WebGLApplication {
             canvas: document.querySelector('canvas'),
         });
 
-        renderer.setClearColor(0xffffff);
+        renderer.setClearColor(0x000000);
 
         return renderer;
     }
@@ -54,9 +54,9 @@ export default class WebGLApplication {
         const r = Date.now() * 0.0003;
         const t = Date.now() * 0.0005;
 
-        this.sceneLego.lego.position.x = 15 * Math.cos(r);
-        this.sceneLego.lego.position.y = 15 * Math.sin(r);
-        this.sceneLego.lego.position.z = 15 * Math.sin(r);
+        this.sceneLego.lego.position.x = 5 * Math.cos(r);
+        this.sceneLego.lego.position.y = 5 * Math.sin(r);
+        this.sceneLego.lego.position.z = 5 * Math.sin(r);
 
         this.sceneLego.lego.rotation.x = t
         this.sceneLego.lego.rotation.y = t

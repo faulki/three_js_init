@@ -1,5 +1,4 @@
 import {
-    BoxGeometry,
     Mesh,
     MeshBasicMaterial,
     Scene,
@@ -13,7 +12,6 @@ import {
     MeshPhysicalMaterial,
     FloatType,
     EquirectangularReflectionMapping,
-    Object3D,
 } from 'three';
 import { HDRLoader } from 'three/examples/jsm/Addons.js';
 import Lego from './Lego';
@@ -21,6 +19,7 @@ import { PMREMGenerator } from 'three';
 import CameraManager from './CameraManager';
 import LightsManager from './LightsManager';
 import LegoPropsManager from './LegoPropsManager';
+import { FlakesTexture } from 'three/examples/jsm/textures/FlakesTexture.js';
 
 const GRID_SIZE = 51;   
 
@@ -31,11 +30,11 @@ export default class SceneLego extends Scene {
         this.renderer = options.renderer;
         this.debugger = options.debugger;
 
-        this.mouseCellX = 0;
-        this.mouseCellY = 0;
-        this.mouseCellIndex = 0;
+        // this.mouseCellX = 0;
+        // this.mouseCellY = 0;
+        // this.mouseCellIndex = 0;
 
-        this.gridAltitudeData = this.createGridAltitudeData();
+        // this.gridAltitudeData = this.createGridAltitudeData();
 
         this.raycaster = new Raycaster();
         this.mousePosition = new Vector2();
@@ -51,14 +50,14 @@ export default class SceneLego extends Scene {
         this.lego = this.createLego();
         this.floorTexture = this.createFloorTexture();
         // this.floor = this.createFloor();
-        this.mouseGhost = this.createMouseGhost();
+        // this.mouseGhost = this.createMouseGhost();
         this.lightsManager = this.createLightsManager();
 
-        this.raycaster = new Raycaster();
-        this.mousePosition = new Vector2();
-        this.mouseGridPosition = new Vector2();
+        // this.raycaster = new Raycaster();
+        // this.mousePosition = new Vector2();
+        // this.mouseGridPosition = new Vector2();
 
-        this.updateGhostSize();
+        // this.updateGhostSize();
         this.setupEventListeners();
     }
 
@@ -66,11 +65,11 @@ export default class SceneLego extends Scene {
         return this.cameraManager.camera;
     }
 
-    createGridAltitudeData() {
-        const data = new Array(GRID_SIZE * GRID_SIZE).fill(0);
+    // createGridAltitudeData() {
+    //     const data = new Array(GRID_SIZE * GRID_SIZE).fill(0);
 
-        return data;
-    }
+    //     return data;
+    // }
 
     createCameraManager() {
         const cameraManager = new CameraManager({
@@ -105,11 +104,21 @@ export default class SceneLego extends Scene {
     }
 
     createLegoMaterial() {
+        // Texture de paillettes générée sur un canvas
+        const normalMap = new CanvasTexture(new FlakesTexture());
+        normalMap.wrapS = RepeatWrapping;
+        normalMap.wrapT = RepeatWrapping;
+        normalMap.repeat.set(10, 6);
+        normalMap.anisotropy = 16;
+
         const material = new MeshPhysicalMaterial({
-            color: 'red',
-            clearcoat: 0.1,
-            metalness: 0.1,
+            clearcoat: 1.0,
             clearcoatRoughness: 0.1,
+            metalness: 0.9,
+            roughness: 0.5,
+            color: 0x0000ff,
+            normalMap: normalMap,
+            normalScale: new Vector2(0.15, 0.15),
         });
 
         return material;
@@ -154,57 +163,42 @@ export default class SceneLego extends Scene {
         return mesh;
     }
 
-    createMouseGhost() {
-        const container = new Object3D();
+    // createMouseGhost() {
+    //     const container = new Object3D();
 
-        this.add(container);
+    //     this.add(container);
 
-        const mouseGhostMesh = new Mesh(
-            new BoxGeometry(1, 1, 1),
-            new MeshBasicMaterial({ color: this.legoPropsManager.color, opacity: 0.1, transparent: true }),
-        );
+    //     const mouseGhostMesh = new Mesh(
+    //         new BoxGeometry(1, 1, 1),
+    //         new MeshBasicMaterial({ color: this.legoPropsManager.color, opacity: 0.1, transparent: true }),
+    //     );
 
-        mouseGhostMesh.material.depthTest = false;
-        mouseGhostMesh.material.depthWrite = false;
+    //     mouseGhostMesh.material.depthTest = false;
+    //     mouseGhostMesh.material.depthWrite = false;
 
-        container.add(mouseGhostMesh);
+    //     container.add(mouseGhostMesh);
 
-        return container;
-    }
+    //     return container;
+    // }
 
-    updateGhostSize() {
-        this.mouseGhost.children[0].position.x = (this.legoPropsManager.size - 1) / 2;
-        this.mouseGhost.children[0].scale.x = this.legoPropsManager.size;
-    }
+    // updateGhostSize() {
+    //     this.mouseGhost.children[0].position.x = (this.legoPropsManager.size - 1) / 2;
+    //     this.mouseGhost.children[0].scale.x = this.legoPropsManager.size;
+    // }
 
-    createLego() {
-        const orientation = this.legoPropsManager.orientation;
-        const size = this.legoPropsManager.size;
+createLego() {
+    const lego = new Lego({
+        color: this.legoPropsManager.color,
+        size: this.legoPropsManager.size,
+        orientation: this.legoPropsManager.orientation,
+        altitude: 0,
+        material: this.legoMaterial.clone(),
+    });
 
-        this.mouseCellX = this.mouseGridPosition.x + Math.floor(GRID_SIZE / 2);
-        this.mouseCellY = this.mouseGridPosition.y + Math.floor(GRID_SIZE / 2);
+    this.add(lego);
 
-        const altitude = this.getAltitude(this.mouseCellX, this.mouseCellY, this.legoPropsManager.size, orientation);
-
-        const lego = new Lego({
-            color: this.legoPropsManager.color,
-            size: size,
-            orientation: orientation,
-            altitude: altitude,
-            material: this.legoMaterial.clone(),
-        }); 
-
-        this.add(lego);
-
-        this.updateAltitude(this.mouseCellX, this.mouseCellY, size, orientation);
-
-        if (this.mouseGridPosition) {
-            lego.position.x = this.mouseGridPosition.x;
-            lego.position.z = this.mouseGridPosition.y;
-        }
-
-        return lego;
-    }
+    return lego;
+}
 
     async createEnvmap() {
         const loader = new HDRLoader();
@@ -218,92 +212,92 @@ export default class SceneLego extends Scene {
         });
     }
 
-    raycast() {
-        this.raycaster.setFromCamera(this.mousePosition, this.camera);
-        const intersects = this.raycaster.intersectObject(this.floor, false);
+    // raycast() {
+    //     this.raycaster.setFromCamera(this.mousePosition, this.camera);
+    //     const intersects = this.raycaster.intersectObject(this.floor, false);
 
-        if (intersects.length === 0) return;
+    //     if (intersects.length === 0) return;
 
-        const x = intersects[0].point.x;
-        const y = intersects[0].point.z;
+    //     const x = intersects[0].point.x;
+    //     const y = intersects[0].point.z;
 
-        this.mouseGridPosition.x = Math.round(x);
-        this.mouseGridPosition.y = Math.round(y);
+    //     this.mouseGridPosition.x = Math.round(x);
+    //     this.mouseGridPosition.y = Math.round(y);
 
-        this.mouseGhost.position.x = this.mouseGridPosition.x;
-        this.mouseGhost.position.z = this.mouseGridPosition.y;
+    //     this.mouseGhost.position.x = this.mouseGridPosition.x;
+    //     this.mouseGhost.position.z = this.mouseGridPosition.y;
 
-        this.mouseCellX = this.mouseGridPosition.x + Math.floor(GRID_SIZE / 2);
-        this.mouseCellY = this.mouseGridPosition.y + Math.floor(GRID_SIZE / 2);
-        this.mouseCellIndex = this.getFlatIndex(this.mouseCellX, this.mouseCellY);
+    //     this.mouseCellX = this.mouseGridPosition.x + Math.floor(GRID_SIZE / 2);
+    //     this.mouseCellY = this.mouseGridPosition.y + Math.floor(GRID_SIZE / 2);
+    //     this.mouseCellIndex = this.getFlatIndex(this.mouseCellX, this.mouseCellY);
 
-        const altitude = this.getAltitude(
-            this.mouseCellX,
-            this.mouseCellY,
-            this.legoPropsManager.size,
-            this.legoPropsManager.orientation,
-        );
+    //     const altitude = this.getAltitude(
+    //         this.mouseCellX,
+    //         this.mouseCellY,
+    //         this.legoPropsManager.size,
+    //         this.legoPropsManager.orientation,
+    //     );
 
-        this.mouseGhost.position.y = altitude;
-    }
+    //     this.mouseGhost.position.y = altitude;
+    // }
 
-    getOffset(orientation) {
-        const offsets = [
-            { x: 1, y: 0 },
-            { x: 0, y: -1 },
-            { x: -1, y: 0 },
-            { x: 0, y: 1 },
-        ];
+    // getOffset(orientation) {
+    //     const offsets = [
+    //         { x: 1, y: 0 },
+    //         { x: 0, y: -1 },
+    //         { x: -1, y: 0 },
+    //         { x: 0, y: 1 },
+    //     ];
 
-        const offset = offsets[orientation];
+    //     const offset = offsets[orientation];
 
-        return offset;
-    }
+    //     return offset;
+    // }
 
-    getAltitude(x, y, size, orientation) {
-        const baseAltitude = this.gridAltitudeData[this.getFlatIndex(x, y)];
+    // getAltitude(x, y, size, orientation) {
+    //     const baseAltitude = this.gridAltitudeData[this.getFlatIndex(x, y)];
 
-        if (size === 1) return baseAltitude;
+    //     if (size === 1) return baseAltitude;
 
-        const altitudes = [baseAltitude];
+    //     const altitudes = [baseAltitude];
 
-        const offset = this.getOffset(orientation);
+    //     const offset = this.getOffset(orientation);
 
-        for (let i = 1; i < size; i++) {
-            const newAltitude = this.gridAltitudeData[this.getFlatIndex(x + i * offset.x, y + i * offset.y)];
-            altitudes.push(newAltitude);
-        }
+    //     for (let i = 1; i < size; i++) {
+    //         const newAltitude = this.gridAltitudeData[this.getFlatIndex(x + i * offset.x, y + i * offset.y)];
+    //         altitudes.push(newAltitude);
+    //     }
 
-        const higherAltitude = altitudes.sort((a, b) => b - a)[0];
+    //     const higherAltitude = altitudes.sort((a, b) => b - a)[0];
 
-        return higherAltitude;
-    }
+    //     return higherAltitude;
+    // }
 
-    updateAltitude(x, y, size, orientation) {
-        if (size === 1) {
-            this.gridAltitudeData[this.getFlatIndex(x, y)]++;
-            return;
-        }
+    // updateAltitude(x, y, size, orientation) {
+    //     if (size === 1) {
+    //         this.gridAltitudeData[this.getFlatIndex(x, y)]++;
+    //         return;
+    //     }
 
-        const altitude = this.getAltitude(x, y, size, orientation);
-        const offset = this.getOffset(orientation);
+    //     const altitude = this.getAltitude(x, y, size, orientation);
+    //     const offset = this.getOffset(orientation);
 
-        this.gridAltitudeData[this.getFlatIndex(x, y)] = altitude + 1;
+    //     this.gridAltitudeData[this.getFlatIndex(x, y)] = altitude + 1;
 
-        for (let i = 1; i < size; i++) {
-            this.gridAltitudeData[this.getFlatIndex(x + i * offset.x, y + i * offset.y)] = altitude + 1;
-        }
-    }
+    //     for (let i = 1; i < size; i++) {
+    //         this.gridAltitudeData[this.getFlatIndex(x + i * offset.x, y + i * offset.y)] = altitude + 1;
+    //     }
+    // }
 
     update(delta) {
         this.cameraManager.update(delta);
 
-        this.raycast();
+        // this.raycast();
     }
 
-    getFlatIndex(x, y) {
-        return x * GRID_SIZE + y;
-    }
+    // getFlatIndex(x, y) {
+    //     return x * GRID_SIZE + y;
+    // }
 
     resize(width, height) {
         this.renderWidth = width;
@@ -316,38 +310,38 @@ export default class SceneLego extends Scene {
      * Events
      */
     setupEventListeners() {
-        window.addEventListener('keydown', this.keydownHandler.bind(this));
-        window.addEventListener('pointerdown', this.pointerdownHandler.bind(this));
-        window.addEventListener('pointerup', this.pointerupHandler.bind(this));
-        window.addEventListener('mousemove', this.mousemoveHandler.bind(this));
+        // window.addEventListener('keydown', this.keydownHandler.bind(this));
+        // window.addEventListener('pointerdown', this.pointerdownHandler.bind(this));
+        // window.addEventListener('pointerup', this.pointerupHandler.bind(this));
+        // window.addEventListener('mousemove', this.mousemoveHandler.bind(this));
     }
 
-    keydownHandler(e) {
-        if (e.key === 'ArrowUp') {
-            this.legoPropsManager.nextSize();
-            this.updateGhostSize();
-        }
+    // keydownHandler(e) {
+    //     if (e.key === 'ArrowUp') {
+    //         this.legoPropsManager.nextSize();
+    //         this.updateGhostSize();
+    //     }
 
-        if (e.key === 'ArrowDown') {
-            this.legoPropsManager.previousSize();
-            this.updateGhostSize();
-        }
+    //     if (e.key === 'ArrowDown') {
+    //         this.legoPropsManager.previousSize();
+    //         this.updateGhostSize();
+    //     }
 
-        if (e.key === 'ArrowLeft') {
-            const newRotation = this.legoPropsManager.previousOrientation();
-            this.mouseGhost.rotation.y = newRotation;
-        }
+    //     if (e.key === 'ArrowLeft') {
+    //         const newRotation = this.legoPropsManager.previousOrientation();
+    //         this.mouseGhost.rotation.y = newRotation;
+    //     }
 
-        if (e.key === 'ArrowRight') {
-            const newRotation = this.legoPropsManager.nextOrientation();
-            this.mouseGhost.rotation.y = newRotation;
-        }
+    //     if (e.key === 'ArrowRight') {
+    //         const newRotation = this.legoPropsManager.nextOrientation();
+    //         this.mouseGhost.rotation.y = newRotation;
+    //     }
 
-        if (e.code === 'Space') {
-            const color = this.legoPropsManager.nextColor();
-            this.mouseGhost.children[0].material.color.set(color);
-        }
-    }
+    //     if (e.code === 'Space') {
+    //         const color = this.legoPropsManager.nextColor();
+    //         this.mouseGhost.children[0].material.color.set(color);
+    //     }
+    // }
 
     pointerdownHandler(e) {
         this.isPointerDown = true;
@@ -375,12 +369,12 @@ export default class SceneLego extends Scene {
         this.createLego(2);
     }
 
-    mousemoveHandler(e) {
-        this.mousePosition.x = (e.clientX / this.renderWidth) * 2 - 1;
-        this.mousePosition.y = -(e.clientY / this.renderHeight) * 2 + 1;
+    // mousemoveHandler(e) {
+    //     this.mousePosition.x = (e.clientX / this.renderWidth) * 2 - 1;
+    //     this.mousePosition.y = -(e.clientY / this.renderHeight) * 2 + 1;
 
-        this.raycast();
-    }
+    //     this.raycast();
+    // }
 
     /**
      * Debug
