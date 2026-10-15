@@ -10,6 +10,7 @@ import {
     DoubleSide,
 } from 'three';
 import { TransformControls } from 'three/examples/jsm/Addons.js';
+import gsap from 'gsap';
 
 export default class LightsManager {
     constructor(options = {}) {
@@ -27,6 +28,13 @@ export default class LightsManager {
 
         this.spot = this.createSpot();
         this.beam = this.createBeam();
+
+        this.flashIntensity = 300;
+        this.spot.intensity = 0;
+        this.beam.material.opacity = 0;
+
+        this.audioManager = options.audioManager;
+        this.audioManager?.onBeat((energy) => this.flashIntensity(energy))
 
         this.debugFolder = this.createDebugFolder();
 
@@ -75,13 +83,23 @@ export default class LightsManager {
         this.beam.material.color.copy(this.spot.color);
     }
 
-    createAmbient() {
-        const ambient = new AmbientLight(0xffffff, 1.5);
+    flash(energy = 1) {
+        gsap.killTweensOf([this.spot, this.beam.material]);
 
-        this.scene.add(ambient);
+        this.spot.intensity = this.flashIntensity * energy;
+        this.beam.material.opacity = 0.15;
 
-        return ambient;
+        gsap.to(this.spot, { intensity: 0, duration: 0.3, ease: 'power2.out'});
+        gsap.to(this.beam.material, {opacity: 0, duration: 0.3, ease: 'power2.out'});
     }
+
+        createAmbient() {
+            const ambient = new AmbientLight(0xffffff, 1.5);
+
+            this.scene.add(ambient);
+
+            return ambient;
+        }
 
     createDirectional() {
         const directional = new DirectionalLight(0xffffff, 2);

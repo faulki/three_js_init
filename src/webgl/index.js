@@ -91,6 +91,8 @@ export default class WebGLApplication {
         this.sceneLego.cameraManager.controls.target.copy(this.sceneLego.lego.position);
         this.sceneLego.cameraManager.controls.update();
         this.sceneLego.lightsManager.update(this.sceneLego.lego.position);
+
+        this.sceneLego.update();
     }
 
     render() {
