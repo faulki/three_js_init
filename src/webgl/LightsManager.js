@@ -53,6 +53,7 @@ export default class LightsManager {
             transparent: true,
             opacity: 0.1,
             depthWrite: false,
+            side: DoubleSide,
         });
 
         const beam = new Mesh(geometry, material);
