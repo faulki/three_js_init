@@ -104,7 +104,6 @@ export default class SceneLego extends Scene {
     }
 
     createLegoMaterial() {
-        // Texture de paillettes générée sur un canvas
         const normalMap = new CanvasTexture(new FlakesTexture());
         normalMap.wrapS = RepeatWrapping;
         normalMap.wrapT = RepeatWrapping;

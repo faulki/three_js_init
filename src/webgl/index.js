@@ -27,11 +27,12 @@ export default class WebGLApplication {
     /**
      * Private
      */
+
     createRenderer() {
         const renderer = new WebGLRenderer({
             canvas: document.querySelector('canvas'),
         });
-
+        
         renderer.toneMapping = ACESFilmicToneMapping;
         renderer.setClearColor(0x000000);
 
@@ -39,28 +40,25 @@ export default class WebGLApplication {
     }
 
     createComposer() {
-    const composer = new EffectComposer(this.renderer);
+        const composer = new EffectComposer(this.renderer);
 
-    // 1. rendu normal de la scène
-    composer.addPass(new RenderPass(this.sceneLego, this.sceneLego.camera));
+        composer.addPass(new RenderPass(this.sceneLego, this.sceneLego.camera));
 
-    // 2. bloom : (résolution, force, rayon du halo, seuil de luminosité)
-    this.bloomPass = new UnrealBloomPass(new Vector2(this.renderWidth, this.renderHeight), 0.6, 0.4, 0.8);
-    composer.addPass(this.bloomPass);
+        this.bloomPass = new UnrealBloomPass(new Vector2(this.renderWidth, this.renderHeight), 0.6, 0.4, 0.8);
+        composer.addPass(this.bloomPass);
 
-    // 3. tone mapping + conversion des couleurs pour l'écran
-    composer.addPass(new OutputPass());
+        composer.addPass(new OutputPass());
 
-    if (this.debugger) {
-        const bloomFolder = this.debugger.addFolder({ title: 'Bloom' });
-        bloomFolder.addBinding(this.bloomPass, 'strength', { min: 0, max: 3 });
-        bloomFolder.addBinding(this.bloomPass, 'radius', { min: 0, max: 1 });
-        bloomFolder.addBinding(this.bloomPass, 'threshold', { min: 0, max: 1 });
-        bloomFolder.addBinding(this.bloomPass, 'enabled', { label: 'Bloom on' });
+        if (this.debugger) {
+            const bloomFolder = this.debugger.addFolder({ title: 'Bloom' });
+            bloomFolder.addBinding(this.bloomPass, 'strength', { min: 0, max: 3 });
+            bloomFolder.addBinding(this.bloomPass, 'radius', { min: 0, max: 1 });
+            bloomFolder.addBinding(this.bloomPass, 'threshold', { min: 0, max: 1 });
+            bloomFolder.addBinding(this.bloomPass, 'enabled', { label: 'Bloom on' });
+        }
+
+        return composer;
     }
-
-    return composer;
-}
 
     createSceneLego() {
         const scene = new SceneLego({
@@ -89,7 +87,6 @@ export default class WebGLApplication {
 
         this.sceneLego.lego.rotation.x = t
         this.sceneLego.lego.rotation.y = t
-
 
         this.sceneLego.cameraManager.controls.target.copy(this.sceneLego.lego.position);
         this.sceneLego.cameraManager.controls.update();

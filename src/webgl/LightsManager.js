@@ -6,10 +6,8 @@ import {
     Mesh,
     CylinderGeometry,
      MeshBasicMaterial,
-    ShaderMaterial,
     AdditiveBlending,
     DoubleSide,
-    Color,
 } from 'three';
 import { TransformControls } from 'three/examples/jsm/Addons.js';
 
@@ -36,93 +34,45 @@ export default class LightsManager {
     }
 
     createSpot() {
-    const spot = new SpotLight(0xffffff, 300, 0, Math.PI / 12, 0.4, 2);
-    spot.position.set(0, 12, 0);
+        const spot = new SpotLight(0xffffff, 300, 0, Math.PI / 12, 0.4, 2);
+        spot.position.set(0, 12, 0);
 
-    this.scene.add(spot);
-    this.scene.add(spot.target);
+        this.scene.add(spot);
+        this.scene.add(spot.target);
 
-    return spot;
-}
+        return spot;
+    }
 
-createBeam() {
+    createBeam() {
+        const geometry = new CylinderGeometry(0.0, 1, 1, 64, 1, true);
+        geometry.translate(0, -0.5, 0);
+        geometry.rotateX(-Math.PI / 2);
 
-    const geometry = new CylinderGeometry(0.0, 1, 1, 64, 1, true);
-    geometry.translate(0, -0.5, 0);
-    geometry.rotateX(-Math.PI / 2);
+        const material = new MeshBasicMaterial({
+            color: 0xffffff,
+            transparent: true,
+            opacity: 0.1,
+            depthWrite: false,
+        });
 
-    const material = new MeshBasicMaterial({
-        color: 0xffffff,
-        transparent: true,
-        opacity: 0.1,
-        depthWrite: false,
-        blending: AdditiveBlending,
-        side: DoubleSide,
-    });
+        const beam = new Mesh(geometry, material);
+        this.scene.add(beam);
 
-    const beam = new Mesh(geometry, material);
-    this.scene.add(beam);
+        return beam;
+    }
 
-    return beam;
+    update(targetPosition) {
+        this.spot.target.position.copy(targetPosition);
 
-    // const material = new ShaderMaterial({
-    //     uniforms: {
-    //         uColor: { value: new Color(0xffffff) },
-    //         uIntensity: { value: 0.2 },
-    //     },
-    //     vertexShader:`
-    //         varying vec2 vUv;
-    //         varying vec3 vNormal;
-    //         varying vec3 vViewPosition;
+        this.beam.position.copy(this.spot.position);
+        this.beam.lookAt(targetPosition);   
 
-    //         void main() {
-    //             vUv = uv;
-    //             vNormal = normalize(normalMatrix * normal);
-    //             vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
-    //             vViewPosition = -mvPosition.xyz;
-    //             gl_Position = projectionMatrix * mvPosition;
-    //         }
-    //     `,
-    //     fragmentShader:`
-    //         uniform vec3 uColor;
-    //         uniform float uIntensity;
-    //         varying vec2 vUv;
-    //         varying vec3 vNormal;
-    //         varying vec3 vViewPosition;
+        const length = this.spot.position.distanceTo(targetPosition) * 1.3;
+        const radius = Math.tan(this.spot.angle) * length;
+        this.beam.scale.set(radius, radius, length);
 
-    //         void main() {
-    //             float edge = abs(dot(normalize(vNormal), normalize(vViewPosition)));
-    //             edge = pow(edge, 3.0);
-
-    //             float fade = pow(vUv.y, 0.8);
-
-    //             gl_FragColor = vec4(uColor * uIntensity, edge * fade);
-    //         }
-    //     `,
-    //     transparent: true,
-    //     depthWrite: false,
-    //     blending: AdditiveBlending,
-    //     side: DoubleSide,
-    // });
-
-//     const beam = new Mesh(geometry, material);
-//     this.scene.add(beam);
-
-//     return beam;
-}
-
-update(targetPosition) {
-    this.spot.target.position.copy(targetPosition);
-
-    this.beam.position.copy(this.spot.position);
-    this.beam.lookAt(targetPosition);
-
-    const length = this.spot.position.distanceTo(targetPosition) * 1.3;
-    const radius = Math.tan(this.spot.angle) * length;
-    this.beam.scale.set(radius, radius, length);
-
-      this.beam.material.color.copy(this.spot.color);
-}
+        this.beam.material.color.copy(this.spot.color);
+    }
 
     createAmbient() {
         const ambient = new AmbientLight(0xffffff, 1.5);
@@ -181,7 +131,6 @@ update(targetPosition) {
 
         const lightsFolder = this.debugger.addFolder({ title: 'Lights' });
         const spotFolder = lightsFolder.addFolder({ title: 'Spot' });
-        // const uniforms = this.beam.material.uniforms;
 
         console.log(this.directional.controls);
 
@@ -190,15 +139,10 @@ update(targetPosition) {
         spotFolder.addBinding(this.spot, 'angle', { min: 0.05, max: Math.PI / 4 });
         spotFolder.addBinding(this.spot, 'penumbra', { min: 0, max: 1 });
         spotFolder.addBinding(this.spot, 'position');
-        // spotFolder.addBinding(this.beam.material.uniforms.uIntensity, 'value', { label: 'Beam', min: 0, max: 3 });
-        // spotFolder.addBinding(uniforms.uColor, 'value', { label: 'Beam Color', color: { type: 'float' },});
         spotFolder.addBinding(this.beam, 'visible', { label: 'Beam on' });
-
         spotFolder.addBinding(this.beam.material, 'color', { label: 'Beam Color', color: { type: 'float' }});
         spotFolder.addBinding(this.beam.material, 'opacity', {label: 'Beam Opacity',min: 0,max: 1,step: 0.01,});
 
-        // lightsFolder.addBinding(this.ambient, 'color', { label: 'Ambient Color' });
-        // lightsFolder.addBinding(this.ambient, 'intensity', { label: 'Ambient Intensity' });
         lightsFolder.addBinding(this.directional, 'color', { label: 'Directional Color', color: { type: 'float' } });
         lightsFolder.addBinding(this.directional, 'intensity', { label: 'Directional Intensity' });
         lightsFolder.addBinding(this.settings, 'helper', { label: 'Helper' }).on('change', () => {
