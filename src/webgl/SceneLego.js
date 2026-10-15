@@ -29,6 +29,7 @@ export default class SceneLego extends Scene {
 
         this.renderer = options.renderer;
         this.debugger = options.debugger;
+        this.audioManager = options.audioManager;
 
         // this.mouseCellX = 0;
         // this.mouseCellY = 0;
@@ -98,6 +99,7 @@ export default class SceneLego extends Scene {
             renderer: this.renderer,
             debugger: this.debugFolder,
             cameraManager: this.cameraManager,
+            audioManager: this.audioManager,
         });
 
         return lightsManager;
@@ -187,7 +189,7 @@ export default class SceneLego extends Scene {
 
 createLego() {
     const lego = new Lego({
-        color: this.legoPropsManager.color,
+        color: 0xb4ccb6,
         size: this.legoPropsManager.size,
         orientation: this.legoPropsManager.orientation,
         altitude: 0,

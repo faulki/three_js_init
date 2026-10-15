@@ -5,12 +5,17 @@ import {
     SpotLight,
     Mesh,
     CylinderGeometry,
-     MeshBasicMaterial,
+    ShaderMaterial,
     AdditiveBlending,
     DoubleSide,
+    Color,
 } from 'three';
 import { TransformControls } from 'three/examples/jsm/Addons.js';
 import gsap from 'gsap';
+import beamVertexShader from './shaders/beam/vertex.glsl?raw';
+import beamFragmentShader from './shaders/beam/fragment.glsl?raw';
+
+const SPOT_COUNT = 6;
 
 export default class LightsManager {
     constructor(options = {}) {
@@ -21,29 +26,53 @@ export default class LightsManager {
 
         this.settings = {
             helper: false,
+            color: new Color(0x3b4288),
+            intensity: 300,
+            beamOpacity: 0.35,
+            decayDistance: 1,
+            decayIntensity: 0.7,
+            edgeSoftness: 0.5,
+            fadeDuration: 1.2,
+            angle: Math.PI / 12,
+            penumbra: 0.4,
+            beams: true,
         };
 
         // this.ambient = this.createAmbient();
         this.directional = this.createDirectional();
 
-        this.spot = this.createSpot();
-        this.beam = this.createBeam();
-
-        this.flashIntensity = 300;
-        this.spot.intensity = 0;
-        this.beam.material.opacity = 0;
+        this.spots = this.createSpots();
+        this.lastSpotIndex = -1;
 
         this.audioManager = options.audioManager;
-        this.audioManager?.onBeat((energy) => this.flashIntensity(energy))
+        this.audioManager?.onNote(() => this.flashRandomSpot());
 
         this.debugFolder = this.createDebugFolder();
 
         this.setupEventListeners();
     }
 
-    createSpot() {
-        const spot = new SpotLight(0xffffff, 300, 0, Math.PI / 12, 0.4, 2);
-        spot.position.set(0, 12, 0);
+    createSpots() {
+        const spots = [];
+
+        for (let i = 0; i < SPOT_COUNT; i++) {
+            const angle = (i / SPOT_COUNT) * Math.PI * 2;
+            const x = Math.cos(angle) * 12;
+            const y = i % 2 === 0 ? 10 : -10;
+            const z = Math.sin(angle) * 12;
+
+            const spot = this.createSpot(x, y, z);
+            spot.beam = this.createBeam();
+
+            spots.push(spot);
+        }
+
+        return spots;
+    }
+
+    createSpot(x, y, z) {
+        const spot = new SpotLight(this.settings.color, 0, 0, this.settings.angle, this.settings.penumbra, 2);
+        spot.position.set(x, y, z);
 
         this.scene.add(spot);
         this.scene.add(spot.target);
@@ -56,12 +85,20 @@ export default class LightsManager {
         geometry.translate(0, -0.5, 0);
         geometry.rotateX(-Math.PI / 2);
 
-        const material = new MeshBasicMaterial({
-            color: 0xffffff,
+        const material = new ShaderMaterial({
+            vertexShader: beamVertexShader,
+            fragmentShader: beamFragmentShader,
             transparent: true,
-            opacity: 0.1,
             depthWrite: false,
+            blending: AdditiveBlending,
             side: DoubleSide,
+            uniforms: {
+                uColor: { value: new Color() },
+                uOpacity: { value: 0 },
+                uDecayIntensity: { value: this.settings.decayIntensity },
+                uDecayDistance: { value: this.settings.decayDistance },
+                uEdgeSoftness: { value: this.settings.edgeSoftness },
+            },
         });
 
         const beam = new Mesh(geometry, material);
@@ -70,27 +107,50 @@ export default class LightsManager {
         return beam;
     }
 
-    update(targetPosition) {
-        this.spot.target.position.copy(targetPosition);
+    flashRandomSpot() {
+        let index = Math.floor(Math.random() * SPOT_COUNT);
+        if (index === this.lastSpotIndex) index = (index + 1) % SPOT_COUNT;
+        this.lastSpotIndex = index;
 
-        this.beam.position.copy(this.spot.position);
-        this.beam.lookAt(targetPosition);   
-
-        const length = this.spot.position.distanceTo(targetPosition) * 1.3;
-        const radius = Math.tan(this.spot.angle) * length;
-        this.beam.scale.set(radius, radius, length);
-
-        this.beam.material.color.copy(this.spot.color);
+        this.flash(this.spots[index]);
     }
 
-    flash(energy = 1) {
-        gsap.killTweensOf([this.spot, this.beam.material]);
+    flash(spot) {
+        const { intensity, beamOpacity, fadeDuration } = this.settings;
 
-        this.spot.intensity = this.flashIntensity * energy;
-        this.beam.material.opacity = 0.15;
+        const beamOpacityUniform = spot.beam.material.uniforms.uOpacity;
 
-        gsap.to(this.spot, { intensity: 0, duration: 0.3, ease: 'power2.out'});
-        gsap.to(this.beam.material, {opacity: 0, duration: 0.3, ease: 'power2.out'});
+        gsap.killTweensOf([spot, beamOpacityUniform]);
+
+        spot.intensity = intensity;
+        beamOpacityUniform.value = beamOpacity;
+
+        gsap.to(spot, { intensity: 0, duration: fadeDuration, ease: 'power2.out' });
+        gsap.to(beamOpacityUniform, { value: 0, duration: fadeDuration, ease: 'power2.out' });
+    }
+
+    update(targetPosition) {
+        for (const spot of this.spots) {
+            spot.target.position.copy(targetPosition);
+            spot.angle = this.settings.angle;
+            spot.penumbra = this.settings.penumbra;
+            spot.color.copy(this.settings.color);
+
+            const beam = spot.beam;
+            beam.visible = this.settings.beams;
+            beam.position.copy(spot.position);
+            beam.lookAt(targetPosition);
+
+            const length = spot.position.distanceTo(targetPosition) * 1.3;
+            const radius = Math.tan(spot.angle) * length;
+            beam.scale.set(radius, radius, length);
+
+            const uniforms = beam.material.uniforms;
+            uniforms.uColor.value.copy(spot.color);
+            uniforms.uDecayDistance.value = this.settings.decayDistance;
+            uniforms.uDecayIntensity.value = this.settings.decayIntensity;
+            uniforms.uEdgeSoftness.value = this.settings.edgeSoftness;
+        }
     }
 
         createAmbient() {
@@ -149,18 +209,19 @@ export default class LightsManager {
         if (!this.debugger) return;
 
         const lightsFolder = this.debugger.addFolder({ title: 'Lights' });
-        const spotFolder = lightsFolder.addFolder({ title: 'Spot' });
+        const spotFolder = lightsFolder.addFolder({ title: 'Spots' });
 
-        console.log(this.directional.controls);
-
-        spotFolder.addBinding(this.spot, 'color', { color: { type: 'float' } });
-        spotFolder.addBinding(this.spot, 'intensity', { min: 0, max: 1000 });
-        spotFolder.addBinding(this.spot, 'angle', { min: 0.05, max: Math.PI / 4 });
-        spotFolder.addBinding(this.spot, 'penumbra', { min: 0, max: 1 });
-        spotFolder.addBinding(this.spot, 'position');
-        spotFolder.addBinding(this.beam, 'visible', { label: 'Beam on' });
-        spotFolder.addBinding(this.beam.material, 'color', { label: 'Beam Color', color: { type: 'float' }});
-        spotFolder.addBinding(this.beam.material, 'opacity', {label: 'Beam Opacity',min: 0,max: 1,step: 0.01,});
+        spotFolder.addBinding(this.settings, 'color', { color: { type: 'float' } });
+        spotFolder.addBinding(this.settings, 'intensity', { min: 0, max: 1000 });
+        spotFolder.addBinding(this.settings, 'beamOpacity', { min: 0, max: 1 });
+        spotFolder.addBinding(this.settings, 'fadeDuration', { min: 0.1, max: 3 });
+        spotFolder.addBinding(this.settings, 'angle', { min: 0.05, max: Math.PI / 4 });
+        spotFolder.addBinding(this.settings, 'penumbra', { min: 0, max: 1 });
+        spotFolder.addBinding(this.settings, 'beams', { label: 'Beams on' });
+        spotFolder.addBinding(this.settings, 'decayDistance', { min: 0, max: 1.5 });
+        spotFolder.addBinding(this.settings, 'decayIntensity', { min: 0, max: 1.5 });
+        spotFolder.addBinding(this.settings, 'edgeSoftness', { min: 0.01, max: 1 });
+        spotFolder.addButton({ title: 'Test flash' }).on('click', () => this.flashRandomSpot());
 
         lightsFolder.addBinding(this.directional, 'color', { label: 'Directional Color', color: { type: 'float' } });
         lightsFolder.addBinding(this.directional, 'intensity', { label: 'Directional Intensity' });

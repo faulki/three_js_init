@@ -2,86 +2,60 @@ export default class AudioManager {
     constructor(options = {}) {
         this.debugger = options.debugger;
 
-        this.audio = new Audio('../../public/deadmau5.mp3');
-        this.audio.loop = true;
+        this.audio = document.querySelector('#audio');
 
-        this.context = null;
-        this.analyser = null;
-        this.data = null;
-        this.beatCallbacks = new Set();
+        this.noteCallbacks = new Set();
+        this.lastNoteIndex = -1;
 
-        this.bassHistory = [];
-        this.lastBeatTime = 0;
-        this.beatSettings = { sensitivity: 1.3, minEnergy: 0.3, cooldown: 200 };
+        this.settings = {
+            pianoStart: 85.94,
+            pianoEnd: 146.3,
+            interval: 0.536,
+        };
 
         this.createDebug();
     }
 
-    onBeat(callback) {
-        this.beatCallbacks.add(callback);
+    get lastNoteTime() {
+        const { pianoStart, pianoEnd, interval } = this.settings;
+        const lastNoteIndex = Math.floor((pianoEnd - pianoStart) / interval);
+
+        return pianoStart + lastNoteIndex * interval;
     }
 
-    async toggle() {
-        if (!this.context) this.setupAnalyser();
-        await this.context.resume();
-
-        if (this.audio.paused) await this.audio.play();
-        else this.audio.pause();
+    onNote(callback) {
+        this.noteCallbacks.add(callback);
     }
 
     createDebug() {
         if (!this.debugger) return;
-        this.debugger.addButton({ title: 'Play / Pause' }).on('click', () => this.toggle());
-        this.debugger.addBinding(this.beatSettings, 'sensitivity', { min: 1, max: 2});
-        this.debugger.addBinding(this.beatSettings, 'minEnergy', { min: 0, max: 1});
-        this.debugger.addBinding(this.beatSettings, 'cooldown', { min: 50, max: 600});
-    }
 
-    setupAnalyser() {
-        this.context = new AudioContext();
-
-        const source = this.context.createMediaElementSource(this.audio);
-        this.analyser = this.context.createAnalyser();
-        this.analyser.fftSize = 1024; 
-        this.analyser.smoothingTimeConstant = 0.8; 
-
-        source.connect(this.analyser);
-        this.analyser.connect(this.context.destination);
-
-        this.data = new Uint8Array(this.analyser.frequencyBinCount);
-    }
-
-    getFrequence(minHz, maxHz) {
-        const binWidth = this.context.sampleRate / this.analyser.fftSize;
-        const start = Math.floor(minHz / binWidth);
-        const end = Math.max(start + 1, Math.ceil(maxHz / binWidth));
-
-        let sum = 0;
-        for (let i = start; i < end; i++) sum += this.data[i];
-
-        return sum / (end - start) / 255;
+        const audioFolder = this.debugger.addFolder({ title: 'Piano rythme' });
+        audioFolder.addBinding(this.settings, 'pianoStart', { min: 0, max: 161, step: 0.01 });
+        audioFolder.addBinding(this.settings, 'pianoEnd', { min: 0, max: 161, step: 1 });
+        audioFolder.addBinding(this.settings, 'interval', { min: 0.2, max: 2, step: 0.001 });
+        audioFolder.addButton({ title: 'Aller au piano' }).on('click', () => {
+            this.audio.currentTime = this.settings.pianoStart;
+            this.audio.play();
+        });
     }
 
     update() {
-        if(!this.analyser || this.audio.paused) return;
+        if (this.audio.paused) return;
 
-        this.analyser.getByteFrequencyData(this.data);
+        const time = this.audio.currentTime;
+        const { pianoStart, pianoEnd, interval } = this.settings;
 
-        const bass = this.getFrequence(20, 150);
+        if (time < pianoStart || time > pianoEnd) {
+            this.lastNoteIndex = -1;
+            return;
+        }
 
-        this.bassHistory.push(bass);
-        if (this.bassHistory.lenght > 43) this.bassHistory.shift();
+        const noteIndex = Math.floor((time - pianoStart) / interval);
 
-        const average = this.bassHistory.reduce((a,b) => a + b, 0) / this.bassHistory.length;
-        const now = performance.now();
-        const { sensitivity, minEnergy, cooldown } = this.beatSettings;
-
-        const isBeat = bass > average * sensitivity && bass > minEnergy && now - this.lastBeatTime > cooldown
-
-        if (isBeat) {
-            this.lastBeatTime = now;
-            this.beatCallbacks.forEach((cb) => cb(bass))
+        if (noteIndex !== this.lastNoteIndex) {
+            this.lastNoteIndex = noteIndex;
+            this.noteCallbacks.forEach((cb) => cb());
         }
     }
 }
-
