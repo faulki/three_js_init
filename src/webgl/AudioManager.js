@@ -34,7 +34,7 @@ export default class AudioManager {
         audioFolder.addBinding(this.settings, 'pianoStart', { min: 0, max: 161, step: 0.01 });
         audioFolder.addBinding(this.settings, 'pianoEnd', { min: 0, max: 161, step: 1 });
         audioFolder.addBinding(this.settings, 'interval', { min: 0.2, max: 2, step: 0.001 });
-        audioFolder.addButton({ title: 'Aller au piano' }).on('click', () => {
+        audioFolder.addButton({ title: 'First note' }).on('click', () => {
             this.audio.currentTime = this.settings.pianoStart;
             this.audio.play();
         });

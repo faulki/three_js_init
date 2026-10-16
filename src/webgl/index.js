@@ -153,10 +153,10 @@ export default class WebGLApplication {
      * Debug
      */
     createDepartureDebug() {
-        const departureFolder = this.debugger.addFolder({ title: 'Départ du lego' });
+        const departureFolder = this.debugger.addFolder({ title: 'Bye bye lego <3' });
         departureFolder.addBinding(this.departureSettings, 'duration', { min: 1, max: 15 });
         departureFolder.addBinding(this.departureSettings, 'distance', { min: 10, max: 150 });
-        departureFolder.addButton({ title: 'Aller au dernier coup' }).on('click', () => {
+        departureFolder.addButton({ title: 'Last note' }).on('click', () => {
             this.audioManager.audio.currentTime = this.audioManager.lastNoteTime - 3;
         });
     }

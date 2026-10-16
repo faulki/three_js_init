@@ -52,8 +52,6 @@ export default class Lego extends Object3D {
         const obj = gltf.scene.getObjectByName(`Lego_${this.size}`);
         let rotations = 1;
 
-        console.log(`Lego_${this.size}`);
-
         obj.scale.set(0.5, 0.5, 0.5);
         obj.position.x = (this.size - 1) / 2;
         obj.rotation.y = Math.PI / 2;
